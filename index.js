@@ -1,6 +1,17 @@
 const inquirer = require('inquirer') ; //package that is used to prompt the user to answering questions 
+const mysql = require('mysql2');
 
-const init = () => {
+const db = mysql.createConnection(
+    {
+        host: 'localhost',
+        user: 'root',
+        password: '',
+        database: 'employee_db'
+    },
+    console.log('Connected to the employee_db database')
+)
+
+const menu = () => {
     inquirer
     .prompt([
         {
@@ -15,16 +26,16 @@ const init = () => {
 
 const actionSelector = (data) => {
     if (data.action == 'view all departments') {
-        console.log('view dep')
+        view('department')
     }
     else if (data.action == 'view all roles') {
-        console.log('view all roles')
+        view('roles')
     } 
     else if (data.action == 'view all employees') {
-        console.log('view all employees')
+        view('employee')
     } 
     else if (data.action == 'add a department') {
-        console.log('add a department')
+        add('department')
     } 
     else if (data.action == 'add a role') {
         console.log('add a role')
@@ -37,4 +48,27 @@ const actionSelector = (data) => {
     } 
 }
 
-init()
+
+const view = (selection) => {
+    let join
+    if (selection == 'department') {
+        join = ''
+    }
+    else if (selection == 'roles') {
+        join = 'JOIN department ON roles.department_id = department.id'
+    }
+    else if (selection == 'employees') {
+        join = 'JOIN roles ON employee.role_id = roles.id'
+    }
+    db.query(`SELECT * FROM ${selection} ${join}`, function (err, results) {
+        if (err) throw err
+        console.log(results)
+        menu()
+    })
+}
+
+const add = (selection) => {
+
+}
+
+menu()
