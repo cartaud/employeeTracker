@@ -35,13 +35,13 @@ const actionSelector = (data) => {
         view('employee')
     } 
     else if (data.action == 'add a department') {
-        add('department')
+        getDepartmentData()
     } 
     else if (data.action == 'add a role') {
-        console.log('add a role')
+        getRoleData()
     } 
     else if (data.action == 'add an employee') {
-        console.log('add an employee')
+        getEmployeeData()
     } 
     else if (data.action == 'update an employee role') {
         console.log('update an employee role')
@@ -57,7 +57,7 @@ const view = (selection) => {
     else if (selection == 'roles') {
         join = 'JOIN department ON roles.department_id = department.id'
     }
-    else if (selection == 'employees') {
+    else if (selection == 'employee') {
         join = 'JOIN roles ON employee.role_id = roles.id'
     }
     db.query(`SELECT * FROM ${selection} ${join}`, function (err, results) {
@@ -67,8 +67,83 @@ const view = (selection) => {
     })
 }
 
-const add = (selection) => {
+const getDepartmentData = () => {
+    inquirer
+    .prompt([
+        {
+            type: 'input',
+            message: 'What is the name of the department?',
+            name: 'departmentName',
+        }
+    ])
+    .then(createDepartment);
+}
 
+const createDepartment = (data) => {
+    //read and write to department db
+    console.log(`Added ${data.departmentName} to the database`)
+    menu()
+}
+
+const getRoleData = () => {
+    inquirer
+    .prompt([
+        {
+            type: 'input',
+            message: 'What is the name of the role?',
+            name: 'roleName',
+        },
+        {
+            type: 'input',
+            message: 'What is the salary of the role?',
+            name: 'roleSalary',
+        },
+        {
+            type: 'input',
+            message: 'Which department does the role belong to?',
+            name: 'roleDepartment',
+        },
+    ])
+    .then(createRole);
+}
+
+const createRole = (data) => {
+    //read and write to role db
+    console.log(`Added ${data.roleName} to the database`)
+    menu()
+}
+
+const getEmployeeData = () => {
+    inquirer
+    .prompt([
+        {
+            type: 'input',
+            message: 'What is the employee\'s first name?',
+            name: 'employeeFirst',
+        },
+        {
+            type: 'input',
+            message: 'What is the employee\'s last name?',
+            name: 'employeeLast',
+        },
+        {
+            type: 'input',
+            message: 'What is the employee\'s role?',
+            name: 'employeeRole',
+        },
+        {
+            type: 'input',
+            message: 'Who is the employee\'s manager?',
+            name: 'employeeManager',
+        }
+    ])
+    .then(createEmployee);
+}
+
+const createEmployee = (data) => {
+    //read and write to employee db
+    console.log(`Added ${data.employeeFirst} ${data.employeeLast} to the database`)
+    menu()
 }
 
 menu()
