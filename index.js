@@ -1,6 +1,8 @@
+//Questions: 70, 82, 128
 const inquirer = require('inquirer'); //package that is used to prompt the user to answering questions 
 const {readAndAppend} = require('./helpers/fsUtils');
 const mysql = require('mysql2');
+const cTable = require('console.table');
 
 const db = mysql.createConnection(
     {
@@ -50,21 +52,39 @@ const menuSelection = (data) => {
 }
 
 const viewTable = (selection) => {
-    let join
+    const values = []
     if (selection == 'department') {
-        join = ''
-    }
+        db.query(`SELECT * FROM department`, function (err, results) {
+            if (err) throw err
+            results.forEach((department) => {
+                values.push([department.id, department.name])
+            })
+            console.table(['id', 'name'], values);
+            menu()
+        })  
+        
+    }//
     else if (selection == 'roles') {
-        join = 'JOIN department ON roles.department_id = department.id'
+        db.query(`SELECT roles.id, roles.title, roles.salary, department.name AS department FROM roles JOIN department ON department.id = roles.department_id;`, function (err, results) {
+            if (err) throw err
+            results.forEach((roles) => {
+                values.push([roles.id, roles.title, roles.department, roles.salary])
+            })
+            console.table(['id', 'title', 'department', 'salary'], values);
+            menu()
+        })  
     }
     else if (selection == 'employee') {
-        join = 'JOIN roles ON employee.role_id = roles.id'
+        db.query(`SELECT * FROM employee JOIN roles ON employee.role_id = roles.id`, function (err, results) {
+            if (err) throw err
+            results.forEach((employee) => {
+                //do i need to query again to get the department and manager??
+                values.push([employee.id, employee.first_name, employee.last_name, employee.title, employee.name, employee.salary, employee.id])
+            })
+            console.table(['id', 'first name', 'last name', 'title', 'department', 'salary', 'manager'], values);
+            menu()
+        }) 
     }
-    db.query(`SELECT * FROM ${selection} ${join}`, function (err, results) {
-        if (err) throw err
-        console.log(results)
-        menu()
-    })
 }
 
 const collectData = (selection) => {
@@ -104,7 +124,7 @@ const collectData = (selection) => {
                 type: 'list',
                 message: 'Which department does the role belong to?',
                 name: 'roleDepartment',
-                choices: departmentList
+                choices: departmentList //from the users selection here, do I query to get the id of the role?
             },
         ])
         .then(addToDb);
@@ -143,23 +163,30 @@ const addToDb = (data) => {
     if (/department/.test(dbTable)) {
         dbInput = 
         `INSERT INTO department (name) 
-        VALUES ("${data.departmentName}")`
+         VALUES ("${data.departmentName}");`
         console.log(`Added ${data.departmentName} to the database`)
     }
     else if (/role/.test(dbTable)) {
         dbInput = 
         `INSERT INTO roles (title, salary, department_id)
-        VALUES ("${data.roleName}", ${data.roleSalary}, "${data.roleDepartment}")`
+         VALUES ("${data.roleName}", ${data.roleSalary}, "${data.roleDepartment}");`
         console.log(`Added ${data.roleName} to the database`)
     }
     else if (/employee/.test(dbTable)) {
         dbInput =
         `INSERT INTO employee (first_name, last_name, role_id, manager_id)
-        VALUES ("${data.employeeFirst}", "${data.employeeLast}", "${data.employeeRole}", "${data.employeeManager}")`
+         VALUES ("${data.employeeFirst}", "${data.employeeLast}", "${data.employeeRole}", "${data.employeeManager}");`
         console.log(`Added ${data.employeeFirst} ${data.employeeLast} to the database`)
     }
-    //readAndAppend(dbInput, './db/schema.sql')
+    readAndAppend(dbInput, './db/schema.sql')
     menu()
 }
 
 menu()
+
+/*toDO: 
+get correct ids to show on view roles (department id is showing instead) 
+get managers name and department to show on view employees
+when adding data, need to have corresponding id for users input (should be integer not string). Maybe need to REGEX to with input department and return id
+add exit method on menu
+*/
