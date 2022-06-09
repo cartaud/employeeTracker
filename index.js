@@ -1,14 +1,15 @@
 //Questions: 70, 82, 128
 const inquirer = require('inquirer'); //package that is used to prompt the user to answering questions 
-const {readAndAppend} = require('./helpers/fsUtils');
+const Query = require('./helpers/query');
 const mysql = require('mysql2');
 const cTable = require('console.table');
+
 
 const db = mysql.createConnection(
     {
         host: 'localhost',
         user: 'root',
-        password: '',
+        password: 'rootroot',
         database: 'employee_db'
     },
     console.log('Connected to the employee_db database')
@@ -52,39 +53,19 @@ const menuSelection = (data) => {
 }
 
 const viewTable = (selection) => {
-    const values = []
     if (selection == 'department') {
-        db.query(`SELECT * FROM department`, function (err, results) {
-            if (err) throw err
-            results.forEach((department) => {
-                values.push([department.id, department.name])
-            })
-            console.table(['id', 'name'], values);
-            menu()
-        })  
-        
-    }//
+        const departmentTable = new Query(`SELECT * FROM department`)
+        departmentTable.getDepartment();
+    }
     else if (selection == 'roles') {
-        db.query(`SELECT roles.id, roles.title, roles.salary, department.name AS department FROM roles JOIN department ON department.id = roles.department_id;`, function (err, results) {
-            if (err) throw err
-            results.forEach((roles) => {
-                values.push([roles.id, roles.title, roles.department, roles.salary])
-            })
-            console.table(['id', 'title', 'department', 'salary'], values);
-            menu()
-        })  
+        const rolesTable = new Query(`SELECT roles.id, roles.title, roles.salary, department.name AS department FROM roles JOIN department ON department.id = roles.department_id;`)
+        rolesTable.getRole();
     }
     else if (selection == 'employee') {
-        db.query(`SELECT * FROM employee JOIN roles ON employee.role_id = roles.id`, function (err, results) {
-            if (err) throw err
-            results.forEach((employee) => {
-                //do i need to query again to get the department and manager??
-                values.push([employee.id, employee.first_name, employee.last_name, employee.title, employee.name, employee.salary, employee.id])
-            })
-            console.table(['id', 'first name', 'last name', 'title', 'department', 'salary', 'manager'], values);
-            menu()
-        }) 
+        const employeeTable = new Query(`SELECT employee.id, employee.first_name, employee.last_name, roles.title AS title, department.name AS department, roles.salary AS salary, manager.first_name AS manager_first, manager.last_name AS manager_last FROM employee JOIN roles ON employee.role_id = roles.id  JOIN department ON department.id = roles.department_id LEFT JOIN employee AS manager ON employee.manager_id = manager.id;`)
+        employeeTable.getEmployee();
     }
+    setTimeout(function(){menu()}, 100);
 }
 
 const collectData = (selection) => {
@@ -164,7 +145,10 @@ const addToDb = (data) => {
         dbInput = 
         `INSERT INTO department (name) 
          VALUES ("${data.departmentName}");`
-        console.log(`Added ${data.departmentName} to the database`)
+         db.query(dbInput, function (err, results) {
+            if (err) throw err
+            else console.log(`Added ${data.departmentName} to the database`)
+        })
     }
     else if (/role/.test(dbTable)) {
         dbInput = 
@@ -178,15 +162,13 @@ const addToDb = (data) => {
          VALUES ("${data.employeeFirst}", "${data.employeeLast}", "${data.employeeRole}", "${data.employeeManager}");`
         console.log(`Added ${data.employeeFirst} ${data.employeeLast} to the database`)
     }
-    readAndAppend(dbInput, './db/schema.sql')
     menu()
 }
 
 menu()
 
 /*toDO: 
-get correct ids to show on view roles (department id is showing instead) 
-get managers name and department to show on view employees
 when adding data, need to have corresponding id for users input (should be integer not string). Maybe need to REGEX to with input department and return id
 add exit method on menu
+Look at activity numbers 21 and 22 for DELETE method
 */
