@@ -51,6 +51,15 @@ class Query {
             console.table(['id', 'first name', 'last name', 'title', 'department', 'salary', 'manager'], values);
         }) 
     }
+
+    addData(name) {
+        db.query(this.query, function (err, results) {
+            if (err) throw err
+            else console.log(`\nAdded ${name} to the database`)
+        })
+    }
+
+   
 }
 
 module.exports = Query

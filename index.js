@@ -30,13 +30,19 @@ const menu = () => {
 
 const menuSelection = (data) => {
     if (data.action == 'view all departments') {
-        viewTable('department')
+        const departmentTable = new Query(`SELECT * FROM department`)
+        departmentTable.getDepartment();
+        setTimeout(function(){menu()}, 10);
     }
     else if (data.action == 'view all roles') {
-        viewTable('roles')
+        const rolesTable = new Query(`SELECT roles.id, roles.title, roles.salary, department.name AS department FROM roles JOIN department ON department.id = roles.department_id;`)
+        rolesTable.getRole();
+        setTimeout(function(){menu()}, 10);
     } 
     else if (data.action == 'view all employees') {
-        viewTable('employee')
+        const employeeTable = new Query(`SELECT employee.id, employee.first_name, employee.last_name, roles.title AS title, department.name AS department, roles.salary AS salary, manager.first_name AS manager_first, manager.last_name AS manager_last FROM employee JOIN roles ON employee.role_id = roles.id  JOIN department ON department.id = roles.department_id LEFT JOIN employee AS manager ON employee.manager_id = manager.id;`)
+        employeeTable.getEmployee();
+        setTimeout(function(){menu()}, 10);
     } 
     else if (data.action == 'add a department') {
         collectData('department')
@@ -50,22 +56,6 @@ const menuSelection = (data) => {
     else if (data.action == 'update an employee role') {
         console.log('update an employee role')
     } 
-}
-
-const viewTable = (selection) => {
-    if (selection == 'department') {
-        const departmentTable = new Query(`SELECT * FROM department`)
-        departmentTable.getDepartment();
-    }
-    else if (selection == 'roles') {
-        const rolesTable = new Query(`SELECT roles.id, roles.title, roles.salary, department.name AS department FROM roles JOIN department ON department.id = roles.department_id;`)
-        rolesTable.getRole();
-    }
-    else if (selection == 'employee') {
-        const employeeTable = new Query(`SELECT employee.id, employee.first_name, employee.last_name, roles.title AS title, department.name AS department, roles.salary AS salary, manager.first_name AS manager_first, manager.last_name AS manager_last FROM employee JOIN roles ON employee.role_id = roles.id  JOIN department ON department.id = roles.department_id LEFT JOIN employee AS manager ON employee.manager_id = manager.id;`)
-        employeeTable.getEmployee();
-    }
-    setTimeout(function(){menu()}, 100);
 }
 
 const collectData = (selection) => {
@@ -105,12 +95,27 @@ const collectData = (selection) => {
                 type: 'list',
                 message: 'Which department does the role belong to?',
                 name: 'roleDepartment',
-                choices: departmentList //from the users selection here, do I query to get the id of the role?
+                choices: departmentList 
             },
         ])
         .then(addToDb);
     }
+
     else if (selection == 'employee') {
+        const roleList = [];
+        const managerList = [];
+        db.query(`SELECT title FROM roles`, function (err, results) {
+            if (err) throw err
+            results.forEach((role) => {
+                roleList.push(role.title)
+            })
+        })
+        db.query(`SELECT first_name, last_name FROM employee WHERE manager_id is null`, function (err, results) {
+            if (err) throw err
+            results.forEach((manager) => {
+                managerList.push(manager.first_name + ' ' + manager.last_name)
+            })
+        })
         inquirer
         .prompt([
         {
@@ -124,14 +129,16 @@ const collectData = (selection) => {
             name: 'employeeLast',
         },
         {
-            type: 'input',
+            type: 'list',
             message: 'What is the employee\'s role?',
             name: 'employeeRole',
+            choices: roleList
         },
         {
-            type: 'input',
+            type: 'list',
             message: 'Who is the employee\'s manager?',
             name: 'employeeManager',
+            choices: managerList
         }
     ])
     .then(addToDb);
@@ -140,29 +147,23 @@ const collectData = (selection) => {
 
 const addToDb = (data) => {
     const dbTable = Object.keys(data)[0]
-    let dbInput
     if (/department/.test(dbTable)) {
-        dbInput = 
-        `INSERT INTO department (name) 
-         VALUES ("${data.departmentName}");`
-         db.query(dbInput, function (err, results) {
-            if (err) throw err
-            else console.log(`Added ${data.departmentName} to the database`)
-        })
+        const departmentEntry = new Query( `INSERT INTO department (name) VALUES ("${data.departmentName}");`)
+        departmentEntry.addData(data.departmentName)
     }
     else if (/role/.test(dbTable)) {
-        dbInput = 
-        `INSERT INTO roles (title, salary, department_id)
-         VALUES ("${data.roleName}", ${data.roleSalary}, "${data.roleDepartment}");`
-        console.log(`Added ${data.roleName} to the database`)
+        db.query(`SELECT id FROM department WHERE name = '${data.roleDepartment}'`, function(err, result) {
+            if (err) throw err
+            const roleEntry = new Query(`INSERT INTO roles (title, salary, department_id) VALUES ("${data.roleName}", ${data.roleSalary}, "${result[0].id}");`)
+            roleEntry.addData(data.roleName) 
+        })
     }
     else if (/employee/.test(dbTable)) {
-        dbInput =
-        `INSERT INTO employee (first_name, last_name, role_id, manager_id)
-         VALUES ("${data.employeeFirst}", "${data.employeeLast}", "${data.employeeRole}", "${data.employeeManager}");`
-        console.log(`Added ${data.employeeFirst} ${data.employeeLast} to the database`)
+        //need to query to get role id and manager id
+        // const employeeEntry = new Query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${data.employeeFirst}", "${data.employeeLast}", "${data.employeeRole}", "${data.employeeManager}");`)
+        // employeeEntry.addData(data.employeeFirst + ' ' + data.employeeLast)
     }
-    menu()
+    setTimeout(function(){menu()}, 10);
 }
 
 menu()
