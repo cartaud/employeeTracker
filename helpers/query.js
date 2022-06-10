@@ -16,7 +16,7 @@ class Query {
         this.query = query
     }
 
-    getDepartment() {
+    getDepartmentTable() {
         const values = [];
         db.query(this.query, function (err, results) {
             if (err) throw err
@@ -27,7 +27,7 @@ class Query {
         })  
     }
 
-    getRole() {
+    getRolesTable() {
         const values = [];
         db.query(this.query, function (err, results) {
             if (err) throw err
@@ -38,7 +38,7 @@ class Query {
         })  
     }
 
-    getEmployee() {
+    getEmployeeTable() {
         const values = [];
         db.query(this.query, function (err, results) {
             if (err) throw err
@@ -60,7 +60,7 @@ class Query {
     }
 
     addRole(data) {
-        db.query(`SELECT id FROM department WHERE name = '${data.roleDepartment}'`, function(err, result) {
+        db.query(this.query, function(err, result) {
             if (err) throw err
             const roleEntry = new Query(`INSERT INTO roles (title, salary, department_id) VALUES ("${data.roleName}", ${data.roleSalary}, ${result[0].id});`)
             roleEntry.addData(data.roleName) 
@@ -68,7 +68,7 @@ class Query {
     }
 
     addEmployee(data) {
-        db.query(`SELECT id FROM roles WHERE title = '${data.employeeRole}'`, function(err, result) {
+        db.query(this.query, function(err, result) {
             if (err) throw err
             const roleId = result[0].id
             if (data.employeeManager == 'None') {
@@ -86,9 +86,9 @@ class Query {
         })
     }
 
-    listDepartment() {
+    listDepartments() {
         const departmentList = [];
-        db.query(`SELECT name FROM department`, function (err, results) {
+        db.query(this.query, function (err, results) {
             if (err) throw err
             results.forEach((department) => {
                 departmentList.push(department.name)
@@ -99,7 +99,7 @@ class Query {
 
     listRoles() {
         const roleList = [];
-        db.query(`SELECT title FROM roles`, function (err, results) {
+        db.query(this.query, function (err, results) {
             if (err) throw err
             results.forEach((role) => {
                 roleList.push(role.title)
@@ -108,15 +108,38 @@ class Query {
         return roleList
     }
 
-    listManager() {
+    listManagers() {
         const managerList = ['None'];
-        db.query(`SELECT first_name, last_name FROM employee WHERE manager_id is null`, function (err, results) {
+        db.query(this.query, function (err, results) {
             if (err) throw err
             results.forEach((manager) => {
                 managerList.push(manager.first_name + ' ' + manager.last_name)
             })
         })
         return managerList
+    }
+
+    listEmployees() {
+        const employeeList = [];
+        db.query(this.query, function (err, results) {
+            if (err) throw err
+            results.forEach((employee) => {
+                employeeList.push(employee.first_name + ' ' + employee.last_name)
+            })
+        })
+        return employeeList
+    }
+
+    updateRole(data) {
+        db.query(this.query, function(err, result) {
+            if (err) throw err
+            const nameArr = data.updateEmployee.split(" ")
+            db.query(`UPDATE employee SET role_id = ${result[0].id} WHERE first_name REGEXP '${nameArr[0]}' AND last_name REGEXP '${nameArr[1]}';`, function(err, result) {
+                if (err) throw err
+                console.log(`\nUpdated ${data.updateEmployee}'s role`)
+            })
+        
+        })
     }
 }
 
