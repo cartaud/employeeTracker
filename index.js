@@ -32,17 +32,17 @@ const menuSelection = (data) => {
     if (data.action == 'view all departments') {
         const departmentTable = new Query(`SELECT * FROM department`)
         departmentTable.getDepartment();
-        setTimeout(function(){menu()}, 10);
+        timeout();
     }
     else if (data.action == 'view all roles') {
         const rolesTable = new Query(`SELECT roles.id, roles.title, roles.salary, department.name AS department FROM roles JOIN department ON department.id = roles.department_id;`)
         rolesTable.getRole();
-        setTimeout(function(){menu()}, 10);
+        timeout();
     } 
     else if (data.action == 'view all employees') {
         const employeeTable = new Query(`SELECT employee.id, employee.first_name, employee.last_name, roles.title AS title, department.name AS department, roles.salary AS salary, manager.first_name AS manager_first, manager.last_name AS manager_last FROM employee JOIN roles ON employee.role_id = roles.id  JOIN department ON department.id = roles.department_id LEFT JOIN employee AS manager ON employee.manager_id = manager.id;`)
         employeeTable.getEmployee();
-        setTimeout(function(){menu()}, 10);
+        timeout();
     } 
     else if (data.action == 'add a department') {
         collectData('department')
@@ -103,7 +103,7 @@ const collectData = (selection) => {
 
     else if (selection == 'employee') {
         const roleList = [];
-        const managerList = [];
+        const managerList = ['None'];
         db.query(`SELECT title FROM roles`, function (err, results) {
             if (err) throw err
             results.forEach((role) => {
@@ -154,15 +154,34 @@ const addToDb = (data) => {
     else if (/role/.test(dbTable)) {
         db.query(`SELECT id FROM department WHERE name = '${data.roleDepartment}'`, function(err, result) {
             if (err) throw err
-            const roleEntry = new Query(`INSERT INTO roles (title, salary, department_id) VALUES ("${data.roleName}", ${data.roleSalary}, "${result[0].id}");`)
+            const roleEntry = new Query(`INSERT INTO roles (title, salary, department_id) VALUES ("${data.roleName}", ${data.roleSalary}, ${result[0].id});`)
             roleEntry.addData(data.roleName) 
         })
     }
     else if (/employee/.test(dbTable)) {
-        //need to query to get role id and manager id
-        // const employeeEntry = new Query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${data.employeeFirst}", "${data.employeeLast}", "${data.employeeRole}", "${data.employeeManager}");`)
-        // employeeEntry.addData(data.employeeFirst + ' ' + data.employeeLast)
+        let managerId 
+        db.query(`SELECT id FROM roles WHERE title = '${data.employeeRole}'`, function(err, result) {
+            if (err) throw err
+            const roleId = result[0].id
+            if (data.employeeManager == 'None') {
+                managerId = null;
+            }  
+            else {
+                const nameArr = data.employeeManager.split(" ")
+                db.query(`SELECT id FROM employee WHERE first_name REGEXP '${nameArr[0]}' AND last_name REGEXP '${nameArr[1]}'`, function(err,result) {
+                    if (err) throw err
+                    managerId = result[0].id
+                })
+            }   
+            const employeeEntry = new Query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${data.employeeFirst}", "${data.employeeLast}", ${roleId}, ${managerId});`)
+            employeeEntry.addData(data.employeeFirst + ' ' + data.employeeLast)
+            
+        })
     }
+    timeout();
+}
+
+const timeout = () => {
     setTimeout(function(){menu()}, 10);
 }
 

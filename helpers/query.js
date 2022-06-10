@@ -58,8 +58,6 @@ class Query {
             else console.log(`\nAdded ${name} to the database`)
         })
     }
-
-   
 }
 
 module.exports = Query
